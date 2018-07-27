@@ -1,7 +1,5 @@
 # K8S Report 
 
-DRAFT
-
 ## Func
 
 Report in slack:

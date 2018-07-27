@@ -125,10 +125,11 @@ func Report(api string) {
 	fmt.Printf("There are %d pvc in the cluster\n", len(pvc.Items))
 	fmt.Printf("There are %d pvc bound in the cluster\n", pvcbound)
 	fmt.Printf("There are %d pvc not bound in the cluster\n", pvcothers)
-	msg := "There are " + string(len(nodes.Items)) + " nodes in the cluster \n" + "There are " + string(len(namespaces.Items)) + " namespaces in the cluster\n" +
-		"There are " + string(len(pods.Items)) + " pods in the cluster\n"
-
-	fmt.Println(msg)
+	msg := "There are " + conv(len(nodes.Items)) + " nodes in the cluster \n" +
+		"There are " + conv(len(namespaces.Items)) + " namespaces in the cluster\n" +
+		"There are " + conv(len(pods.Items)) + " pods in the cluster\n" + "      " + conv(podsrunning) + " Runing, " + conv(podssuccess) + " Completed, " + conv(podsothers) + " failed\n" +
+		"There are " + conv(len(pvc.Items)) + " pvc in the cluster \n" + "      " + conv(pvcbound) + " Bound, " + conv(pvcothers) + " not Bound"
+	publish(msg)
 }
 
 func homeDir() string {
@@ -157,4 +158,25 @@ func publish(msg string) {
 		panic(err)
 	}
 	defer rs.Body.Close() // nolint: errcheck
+}
+
+func conv(n int) string {
+	buf := [11]byte{}
+	pos := len(buf)
+	i := int64(n)
+	signed := i < 0
+	if signed {
+		i = -i
+	}
+	for {
+		pos--
+		buf[pos], i = '0'+byte(i%10), i/10
+		if i == 0 {
+			if signed {
+				pos--
+				buf[pos] = '-'
+			}
+			return string(buf[pos:])
+		}
+	}
 }

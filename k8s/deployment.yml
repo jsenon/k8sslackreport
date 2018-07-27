@@ -1,0 +1,19 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: hello
+spec:
+  schedule: "0 8 * * 1,2,3,4,5"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: k8sslackreport
+            image: docker.io/jsenon/k8sslackreport:latest
+            command: ["./k8sslackreport"]
+            args: [report,--api,internal]
+            env:
+            - name: SLACK_URL
+              value: ""
+          restartPolicy: OnFailure

@@ -38,13 +38,11 @@ func init() {
 func Report(api string) {
 	var kubeconfig *string
 	var client *kubernetes.Clientset
-	// var podsStore cache.Store
-	// var podStorekube cache.Store
-	// var nodesStore cache.Store
-	// var eventStore cache.Store
-	// var eventallStore cache.Store
-
-	// ctx := context.Background()
+	var podsothers int
+	var podsrunning int
+	var podssuccess int
+	var pvcbound int
+	var pvcothers int
 
 	fmt.Println("You have selected api: ", api)
 	// Internal k8s api
@@ -74,11 +72,55 @@ func Report(api string) {
 		}
 
 	}
+	// List Pods interface
 	pods, err := client.CoreV1().Pods("").List(metav1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
 	}
+	// List Nodes interface
+	nodes, err := client.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	// List Namespaces interface
+	namespaces, err := client.CoreV1().Namespaces().List(metav1.ListOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	// List Persistant Volume Claims interface
+	pvc, err := client.CoreV1().PersistentVolumeClaims("").List(metav1.ListOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+
+	for _, n := range pods.Items {
+		switch state := n.Status.Phase; state {
+		case "Running":
+			podsrunning = podsrunning + 1
+		case "Succeeded":
+			podssuccess = podssuccess + 1
+		default:
+			podsothers = podsothers + 1
+		}
+	}
+
+	for _, n := range pvc.Items {
+		switch state := n.Status.Phase; state {
+		case "Bound":
+			pvcbound = pvcbound + 1
+		default:
+			pvcothers = pvcothers + 1
+		}
+	}
+	fmt.Printf("There are %d nodes in the cluster\n", len(nodes.Items))
+	fmt.Printf("There are %d namespaces in the cluster\n", len(namespaces.Items))
 	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
+	fmt.Printf("There are %d running pods in the cluster\n", podsrunning)
+	fmt.Printf("There are %d completed jobs in the cluster\n", podssuccess)
+	fmt.Printf("There are %d failed status in the cluster\n", podsothers)
+	fmt.Printf("There are %d pvc in the cluster\n", len(pvc.Items))
+	fmt.Printf("There are %d pvc bound in the cluster\n", pvcbound)
+	fmt.Printf("There are %d pvc not bound in the cluster\n", pvcothers)
 
 }
 

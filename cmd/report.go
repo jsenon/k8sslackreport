@@ -83,11 +83,9 @@ func Report(api string) {
 	if err != nil {
 		panic(err.Error())
 	}
-	// List Nodes interface
-	nodes, err := client.CoreV1().Nodes().List(metav1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
+	// List Nodes and detail statuss
+	node, nodeready, nodefailed, nodeother := nodedetails(client)
+
 	// List Namespaces interface
 	namespaces, err := client.CoreV1().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
@@ -118,20 +116,25 @@ func Report(api string) {
 			pvcothers = pvcothers + 1
 		}
 	}
-	fmt.Printf("There are %d nodes in the cluster\n", len(nodes.Items))
+
+	fmt.Printf("There are %d nodes in the cluster\n", node)
+	fmt.Printf("There are %d nodes Ready in the cluster\n", nodeready)
+	fmt.Printf("There are %d nodes Failed in the cluster\n", nodefailed)
+	fmt.Printf("There are %d nodes Other State in the cluster\n", nodeother)
 	fmt.Printf("There are %d namespaces in the cluster\n", len(namespaces.Items))
 	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
 	fmt.Printf("There are %d running pods in the cluster\n", podsrunning)
 	fmt.Printf("There are %d completed jobs in the cluster\n", podssuccess)
-	fmt.Printf("There are %d failed status in the cluster\n", podsothers)
+	fmt.Printf("There are %d failed pods in the cluster\n", podsothers)
 	fmt.Printf("There are %d pvc in the cluster\n", len(pvc.Items))
 	fmt.Printf("There are %d pvc bound in the cluster\n", pvcbound)
 	fmt.Printf("There are %d pvc not bound in the cluster\n", pvcothers)
-	msg := "There are " + conv(len(nodes.Items)) + " nodes in the cluster \n" +
+	msg := "There are " + conv(node) + " nodes in the cluster \n" + "      " + conv(nodeready) + " Running, " + conv(nodefailed) + " Failed, " + conv(nodeother) + " Undefined status\n" +
 		"There are " + conv(len(namespaces.Items)) + " namespaces in the cluster\n" +
-		"There are " + conv(len(pods.Items)) + " pods in the cluster\n" + "      " + conv(podsrunning) + " Runing, " + conv(podssuccess) + " Completed, " + conv(podsothers) + " failed\n" +
+		"There are " + conv(len(pods.Items)) + " pods in the cluster\n" + "      " + conv(podsrunning) + " Running, " + conv(podssuccess) + " Completed, " + conv(podsothers) + " failed\n" +
 		"There are " + conv(len(pvc.Items)) + " pvc in the cluster \n" + "      " + conv(pvcbound) + " Bound, " + conv(pvcothers) + " not Bound"
 	publish(msg)
+	fmt.Println(msg)
 }
 
 func homeDir() string {
@@ -181,4 +184,79 @@ func conv(n int) string {
 			return string(buf[pos:])
 		}
 	}
+}
+
+// nodedetails will export node details status
+// nolint: gocyclo
+func nodedetails(c *kubernetes.Clientset) (nodenbr, nodeready, nodefailed, nodeother int) {
+	var ready int
+	var oodisk int
+	var pid int
+	var net int
+	var mem int
+	var other int
+	var disk int
+	var failed int
+	nodefailed = 0
+	nodeother = 0
+	nodeready = 0
+	nodes, err := c.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		fmt.Println(err)
+	}
+	const value = "True"
+
+	nodenbr = len(nodes.Items)
+	for _, n := range nodes.Items {
+		ready = 0
+		oodisk = 0
+		pid = 0
+		disk = 0
+		net = 0
+		mem = 0
+		other = 0
+		for _, o := range n.Status.Conditions {
+			switch state := o.Type; state {
+			case "Ready":
+				if o.Status == value {
+					ready = 1
+				}
+			case "OutOfDisk":
+				if o.Status == value {
+					oodisk = 1
+				}
+			case "PIDPressure":
+				if o.Status == value {
+					pid = 1
+				}
+			case "DiskPressure":
+				if o.Status == value {
+					disk = 1
+				}
+			case "NetworkUnavailable":
+				if o.Status == value {
+					net = 1
+				}
+			case "MemoryPressure":
+				if o.Status == value {
+					mem = 1
+				}
+			default:
+				other = 1
+			}
+			if ready == 1 {
+				nodeready = nodeready + 1
+			}
+			if oodisk == 1 || pid == 1 || disk == 1 || net == 1 || mem == 1 {
+				failed = failed + 1
+			}
+			if other == 1 {
+				nodeother = nodeother + 1
+			}
+		}
+		if failed >= 1 {
+			nodefailed = 1
+		}
+	}
+	return
 }

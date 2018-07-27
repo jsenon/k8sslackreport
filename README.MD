@@ -4,7 +4,7 @@
 
 Report in slack:
 - Number of pods with details (running, failed)
-- Number of nodes
+- Number of nodes with details (running, failed)
 - Number of namespaces
 - Number of jobs
 - Number of persistent volume claims (bound, not bound)

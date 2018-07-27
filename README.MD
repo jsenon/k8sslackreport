@@ -1,5 +1,8 @@
 # K8S Report 
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/jsenon/k8sslackreport)](https://goreportcard.com/report/github.com/jsenon/k8sslackreport)
+[![CircleCI](https://circleci.com/gh/jsenon/k8sslackreport.svg?style=svg)](https://circleci.com/gh/jsenon/k8sslackreport)
+
 ## Func
 
 Report in slack:

@@ -39,6 +39,8 @@ func init() {
 	rootCmd.AddCommand(reportCmd)
 }
 
+// Report func detail number of pods, nodes, namespaces, pvc
+// nolint: gocyclo
 func Report(api string) {
 	var kubeconfig *string
 	var client *kubernetes.Clientset

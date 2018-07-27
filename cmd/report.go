@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -121,7 +125,10 @@ func Report(api string) {
 	fmt.Printf("There are %d pvc in the cluster\n", len(pvc.Items))
 	fmt.Printf("There are %d pvc bound in the cluster\n", pvcbound)
 	fmt.Printf("There are %d pvc not bound in the cluster\n", pvcothers)
+	msg := "There are " + string(len(nodes.Items)) + " nodes in the cluster \n" + "There are " + string(len(namespaces.Items)) + " namespaces in the cluster\n" +
+		"There are " + string(len(pods.Items)) + " pods in the cluster\n"
 
+	fmt.Println(msg)
 }
 
 func homeDir() string {
@@ -129,4 +136,25 @@ func homeDir() string {
 		return h
 	}
 	return os.Getenv("USERPROFILE") // windows
+}
+
+func publish(msg string) {
+	url := os.Getenv("SLACK_URL")
+
+	values := map[string]string{"text": msg}
+	b, err := json.Marshal(values)
+	if err != nil {
+		fmt.Println(err)
+	}
+	tr := &http.Transport{
+		MaxIdleConns:       10,
+		IdleConnTimeout:    30 * time.Second,
+		DisableCompression: true,
+	}
+	httpclient := &http.Client{Transport: tr}
+	rs, err := httpclient.Post(url, "application/json", bytes.NewBuffer(b))
+	if err != nil {
+		panic(err)
+	}
+	defer rs.Body.Close() // nolint: errcheck
 }

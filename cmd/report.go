@@ -29,8 +29,11 @@ var reportCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if api == "internal" {
 			Report("internal")
+		} else if api == "internal" {
+			Report("external")
+		} else {
+			fmt.Println("Api selected doesn't exist. Choose between internal or external")
 		}
-		Report("external")
 	},
 }
 

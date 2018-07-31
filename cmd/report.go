@@ -208,6 +208,7 @@ func nodedetails(c *kubernetes.Clientset) (nodenbr, nodeready, nodefailed, nodeo
 
 	nodenbr = len(nodes.Items)
 	for _, n := range nodes.Items {
+		//Details error could be used for future usage
 		ready = 0
 		oodisk = 0
 		pid = 0

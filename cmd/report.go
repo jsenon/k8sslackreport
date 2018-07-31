@@ -197,6 +197,7 @@ func nodedetails(c *kubernetes.Clientset) (nodenbr, nodeready, nodefailed, nodeo
 	var pid int
 	var net int
 	var mem int
+	var kernel int
 	var other int
 	var disk int
 	var failed int
@@ -218,6 +219,7 @@ func nodedetails(c *kubernetes.Clientset) (nodenbr, nodeready, nodefailed, nodeo
 		disk = 0
 		net = 0
 		mem = 0
+		kernel = 0
 		other = 0
 		for _, o := range n.Status.Conditions {
 			switch state := o.Type; state {
@@ -245,13 +247,17 @@ func nodedetails(c *kubernetes.Clientset) (nodenbr, nodeready, nodefailed, nodeo
 				if o.Status == value {
 					mem = 1
 				}
+			case "KernelDeadlock":
+				if o.Status == value {
+					kernel = 1
+				}
 			default:
 				other = 1
 			}
 			if ready == 1 {
 				nodeready = nodeready + 1
 			}
-			if oodisk == 1 || pid == 1 || disk == 1 || net == 1 || mem == 1 {
+			if oodisk == 1 || pid == 1 || disk == 1 || net == 1 || mem == 1 || kernel == 1 {
 				failed = failed + 1
 			}
 			if other == 1 {

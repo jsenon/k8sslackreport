@@ -81,6 +81,20 @@ func Report(api string) {
 		}
 
 	}
+	// Cluster name
+	serverversion, err := client.ServerVersion()
+	if err != nil {
+		panic(err.Error())
+	}
+	// fmt.Println("DEBUG Server Version:", serverversion)
+
+	cluster := client.RESTClient().Get().URL()
+	// fmt.Println("DEBUG Server Version:", cluster)
+
+	// Retrieve vc exposed for cluster-info
+	// svc, _ := client.CoreV1().Services("").List(metav1.ListOptions{LabelSelector: "kubernetes.io/cluster-service=true"})
+	// fmt.Println("DEBUG Svc Version:", svc)
+
 	// List Pods interface
 	pods, err := client.CoreV1().Pods("").List(metav1.ListOptions{})
 	if err != nil {
@@ -119,7 +133,8 @@ func Report(api string) {
 			pvcothers = pvcothers + 1
 		}
 	}
-
+	fmt.Printf("Report for %v\n", cluster)
+	fmt.Printf("Cluster version is %v\n", serverversion)
 	fmt.Printf("There are %d nodes in the cluster\n", node)
 	fmt.Printf("There are %d nodes Ready in the cluster\n", nodeready)
 	fmt.Printf("There are %d nodes Failed in the cluster\n", nodefailed)
@@ -132,7 +147,8 @@ func Report(api string) {
 	fmt.Printf("There are %d pvc in the cluster\n", len(pvc.Items))
 	fmt.Printf("There are %d pvc bound in the cluster\n", pvcbound)
 	fmt.Printf("There are %d pvc not bound in the cluster\n", pvcothers)
-	msg := "There are " + conv(node) + " nodes in the cluster \n" + "      " + conv(nodeready) + " Running, " + conv(nodefailed) + " Failed, " + conv(nodeother) + " Undefined status\n" +
+	msg := "Report for " + cluster.String() + "\n" + "Cluster version is " + serverversion.String() + "\n" +
+		"There are " + conv(node) + " nodes in the cluster \n" + "      " + conv(nodeready) + " Running, " + conv(nodefailed) + " Failed, " + conv(nodeother) + " Undefined status\n" +
 		"There are " + conv(len(namespaces.Items)) + " namespaces in the cluster\n" +
 		"There are " + conv(len(pods.Items)) + " pods in the cluster\n" + "      " + conv(podsrunning) + " Running, " + conv(podssuccess) + " Completed, " + conv(podsothers) + " failed\n" +
 		"There are " + conv(len(pvc.Items)) + " pvc in the cluster \n" + "      " + conv(pvcbound) + " Bound, " + conv(pvcothers) + " not Bound"

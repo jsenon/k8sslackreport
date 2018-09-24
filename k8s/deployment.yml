@@ -8,6 +8,7 @@ spec:
     spec:
       template:
         spec:
+          serviceAccountName: slackreport-serviceaccount
           containers:
           - name: k8sslackreport
             image: docker.io/jsenon/k8sslackreport:latest
@@ -17,3 +18,33 @@ spec:
             - name: SLACK_URL
               value: ""
           restartPolicy: OnFailure
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  # "namespace" omitted since ClusterRoles are not namespaced
+  name: slackreport-serviceaccount
+rules:
+- apiGroups: [""]
+  resources: ["pods","nodes","namespaces","services","persistentvolumeclaims"]
+  verbs: ["get", "watch", "list"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: slackreport-serviceaccount
+  namespace: kube-system
+subjects:
+- kind: ServiceAccount
+  name: slackreport-serviceaccount # Name is case sensitive
+  namespace: kube-system
+roleRef:
+  kind: ClusterRole #this must be Role or ClusterRole
+  name: slackreport-serviceaccount # this must match the name of the Role or ClusterRole you wish to bind to
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: slackreport-serviceaccount
+  namespace: kube-system

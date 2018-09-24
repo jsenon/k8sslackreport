@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,6 +19,7 @@ import (
 )
 
 var api string
+var apiserver string
 
 // reportCmd represents the report command
 var reportCmd = &cobra.Command{
@@ -81,15 +83,11 @@ func Report(api string) {
 		}
 
 	}
-	// Cluster name
+	// Cluster Version
 	serverversion, err := client.ServerVersion()
 	if err != nil {
 		panic(err.Error())
 	}
-	// fmt.Println("DEBUG Server Version:", serverversion)
-
-	cluster := client.RESTClient().Get().URL()
-	// fmt.Println("DEBUG Server Version:", cluster)
 
 	// Retrieve vc exposed for cluster-info
 	// svc, _ := client.CoreV1().Services("").List(metav1.ListOptions{LabelSelector: "kubernetes.io/cluster-service=true"})
@@ -100,6 +98,21 @@ func Report(api string) {
 	if err != nil {
 		panic(err.Error())
 	}
+
+	// Find Cluster Name in pod api
+	podskube, err := client.CoreV1().Pods("kube-system").List(metav1.ListOptions{LabelSelector: "k8s-app=kube-apiserver"})
+	if err != nil {
+		panic(err.Error())
+	}
+	for _, n := range podskube.Items {
+		for k, o := range n.Annotations {
+			if k == "dns.alpha.kubernetes.io/internal" {
+				apiserver = o
+			}
+		}
+	}
+	apicusto := strings.SplitAfter(apiserver, "api.internal.")
+
 	// List Nodes and detail statuss
 	node, nodeready, nodefailed, nodeother := nodedetails(client)
 
@@ -133,7 +146,7 @@ func Report(api string) {
 			pvcothers = pvcothers + 1
 		}
 	}
-	fmt.Printf("Report for %v\n", cluster)
+	fmt.Printf("Report for %v\n", apicusto[1])
 	fmt.Printf("Cluster version is %v\n", serverversion)
 	fmt.Printf("There are %d nodes in the cluster\n", node)
 	fmt.Printf("There are %d nodes Ready in the cluster\n", nodeready)
@@ -147,7 +160,7 @@ func Report(api string) {
 	fmt.Printf("There are %d pvc in the cluster\n", len(pvc.Items))
 	fmt.Printf("There are %d pvc bound in the cluster\n", pvcbound)
 	fmt.Printf("There are %d pvc not bound in the cluster\n", pvcothers)
-	msg := "Report for " + cluster.String() + "\n" + "Cluster version is " + serverversion.String() + "\n" +
+	msg := "Report for " + apicusto[1] + "\n" + "Cluster version is " + serverversion.String() + "\n" +
 		"There are " + conv(node) + " nodes in the cluster \n" + "      " + conv(nodeready) + " Running, " + conv(nodefailed) + " Failed, " + conv(nodeother) + " Undefined status\n" +
 		"There are " + conv(len(namespaces.Items)) + " namespaces in the cluster\n" +
 		"There are " + conv(len(pods.Items)) + " pods in the cluster\n" + "      " + conv(podsrunning) + " Running, " + conv(podssuccess) + " Completed, " + conv(podsothers) + " failed\n" +
